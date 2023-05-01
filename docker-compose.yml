@@ -1,0 +1,28 @@
+version: "3"
+services:
+  mongo:
+    image: mongo-express
+    restart: on-failure
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: root
+      ME_CONFIG_MONGODB_URL: mongodb://root:example@mongo:27017/
+    networks:
+      - my-network
+    ports:
+      - "27017:27017"
+
+  user-account-app:
+    depends_on:
+      - mongo
+    build:
+      context: ./UserService
+      dockerfile: Dockerfile
+    networks:
+      - my-network
+    restart: on-failure
+    ports:
+      - "8080:8080"
+
+networks:
+  my-network:
