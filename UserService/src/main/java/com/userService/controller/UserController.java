@@ -1,42 +1,59 @@
 package com.userService.controller;
 
-import com.userService.model.UserAccountDetails;
-import com.userService.service.UserAccountService;
+import com.userService.model.User;
+import com.userService.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
+import java.util.List;
+
 @RestController
-@RequestMapping("api/user")
+@RequestMapping("/users")
 public class UserController {
-
     @Autowired
-    UserAccountService userAccountService;
+    private UserService userService;
 
-    @PostMapping
-    public ResponseEntity<UserAccountDetails> createUserAccount(@RequestBody UserAccountDetails userDetails){
-        UserAccountDetails savedUser = userAccountService.userCreate(userDetails);
-        return new ResponseEntity<>(savedUser, HttpStatus.CREATED);
+    @GetMapping("/")
+    public ResponseEntity<List<User>> getAllUsers() {
+        return ResponseEntity.ok(userService.getAllUsers());
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<UserAccountDetails> getEmpById(@PathVariable("email") String email){
-        UserAccountDetails user = userAccountService.getUserById(email);
-        return new ResponseEntity<>(user, HttpStatus.OK);
+    @GetMapping("/{email}")
+    public ResponseEntity<User> getUserByEmail(@PathVariable String email) {
+        User user = userService.getUserByEmail(email);
+        if (user != null) {
+            return ResponseEntity.ok(user);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<UserAccountDetails> updateUser(@PathVariable("email") String email,
-                                               @RequestBody UserAccountDetails userDetails){
-        userAccountService.getUserById(email);
-        UserAccountDetails updatedUser = userAccountService.userUpdate(userDetails);
-        return new ResponseEntity<>(updatedUser, HttpStatus.OK);
+    @PostMapping("/")
+    public ResponseEntity<User> createUser(@Valid @RequestBody User user) {
+        User savedUser = userService.saveOrUpdateUser(user);
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedUser);
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<String> deleteUser(@PathVariable("email") String userEmail){
-        userAccountService.userDelete(userEmail);
-        return new ResponseEntity<>("User successfully deleted!", HttpStatus.OK);
+    @PutMapping("/{email}")
+    public ResponseEntity<User> updateUserByEmail(@PathVariable String email, @Valid @RequestBody User user) {
+        User existingUser = userService.getUserByEmail(email);
+        if (existingUser != null) {
+            existingUser.setName(user.getName());
+            existingUser.setPassword(user.getPassword());
+            existingUser.setDateOfBirth(user.getDateOfBirth());
+            User updatedUser = userService.saveOrUpdateUser(existingUser);
+            return ResponseEntity.ok(updatedUser);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @DeleteMapping("/{email}")
+    public ResponseEntity<Void> deleteUserByEmail(@PathVariable String email) {
+        userService.deleteUserByEmail(email);
+        return ResponseEntity.noContent().build();
     }
 }

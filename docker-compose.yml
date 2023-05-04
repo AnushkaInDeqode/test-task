@@ -1,28 +1,47 @@
-version: "3"
+version: '3.8'
 services:
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
   mongo:
-    image: mongo-express
-    restart: on-failure
+    image: mongo:latest
     environment:
-      ME_CONFIG_MONGODB_ADMINUSERNAME: root
-      ME_CONFIG_MONGODB_ADMINPASSWORD: root
-      ME_CONFIG_MONGODB_URL: mongodb://root:example@mongo:27017/
-    networks:
-      - my-network
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: userdb
+
     ports:
       - "27017:27017"
+  mysql:
+    image: mysql:latest
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: orderdb
+      MYSQL_USER: orderuser
+      MYSQL_PASSWORD: password
 
-  user-account-app:
-    depends_on:
-      - mongo
-    build:
-      context: ./UserService
-      dockerfile: Dockerfile
-    networks:
-      - my-network
-    restart: on-failure
+    ports:
+      - "3306:3306"
+  user-service:
+    build: .
+    environment:
+      SPRING_DATA_MONGODB_URI: mongodb://root:password@mongo:27017/userdb
+      REDIS_HOST: redis
     ports:
       - "8080:8080"
-
-networks:
-  my-network:
+    depends_on:
+      - redis
+      - mongo
+  order-service:
+    build: .
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/orderdb
+      SPRING_DATASOURCE_USERNAME: orderuser
+      SPRING_DATASOURCE_PASSWORD: password
+      USER_SERVICE_URL: http://user-service:8080/users
+    ports:
+      - "8081:8080"
+    depends_on:
+      - user-service
+      - mysql
